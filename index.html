@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热搜预定 V7.1 (修复版)</title>
+    <style>
+        /* 全局样式 */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif; background-color: #F8F8F8; margin: 0; padding: 0; display: flex; justify-content: center; }
+        #game-wrapper { max-width: 450px; width: 100%; background-color: white; min-height: 100vh; }
+        #game-container { padding: 20px; }
+
+        /* 主菜单样式 */
+        .main-menu { text-align: center; padding: 80px 20px; }
+        .menu-title { font-size: 28px; font-weight: bold; color: #111; margin-bottom: 15px; }
+        .menu-subtitle { font-size: 15px; color: #888; margin-bottom: 50px; line-height: 1.6; }
+        .menu-button { display: block; width: 80%; max-width: 280px; margin: 0 auto 20px auto; padding: 15px 20px; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border: none; }
+        .menu-button-primary { background-color: #FF2442; color: white; }
+        .menu-button-primary:hover { background-color: #E01E38; transform: translateY(-2px); }
+        .menu-button-secondary { background-color: #F0F2F5; color: #333; }
+        .menu-button-secondary:hover { background-color: #E5E7EB; transform: translateY(-2px); }
+
+        /* 帖子样式 */
+        .post { background-color: white; margin-bottom: 20px; }
+        .user-info { display: flex; align-items: center; margin-bottom: 15px; }
+        .avatar-placeholder { width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; background-color: #EAEAEA; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; }
+        .username { font-weight: 600; font-size: 16px; }
+        .post-title { font-weight: 600; font-size: 18px; margin-bottom: 10px; color: #111; }
+        .post-text { font-size: 15px; margin-bottom: 15px; line-height: 1.6; color: #333; }
+        .tags { margin-bottom: 15px; }
+        .tag { display: inline-block; background-color: #F0F2F5; color: #586B8A; padding: 4px 12px; border-radius: 15px; font-size: 13px; margin-right: 8px; margin-bottom: 8px; }
+
+        /* 评论/选项 样式 */
+        .divider { border-top: 1px solid #F0F0F0; margin: 20px 0; }
+        .comment-header { font-size: 14px; color: #888; margin-bottom: 20px; }
+        .comment { padding: 10px 5px; margin-bottom: 15px; cursor: pointer; display: flex; align-items: flex-start; border-radius: 8px; transition: background-color 0.2s ease; }
+        .comment:hover { background-color: #f7f7f7; }
+        .comment-content { flex: 1; }
+        .comment-user { display: flex; align-items: center; margin-bottom: 5px; }
+        .comment-avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; background-color: #EAEAEA; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; font-size: 14px; }
+        .comment-username { font-weight: 600; font-size: 14px; color: #555; }
+        .comment-text { font-size: 14px; line-height: 1.5; padding-left: 42px; }
+        .like-icon { font-size: 1.2em; color: #ccc; margin-left: 15px; margin-top: 5px; transition: color 0.2s ease, transform 0.2s ease; }
+        .comment:hover .like-icon { color: #FF2442; transform: scale(1.2); }
+
+        /* 结局收集界面样式 */
+        .collection-wrapper { padding: 20px; }
+        .collection-title { font-size: 22px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+        .collection-subtitle { font-size: 14px; color: #888; text-align: center; margin-bottom: 30px; }
+        .ending-item { border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 15px; transition: all 0.3s ease; }
+        .ending-item.unlocked { border-color: #FFD3D9; background-color: #FFF8F8; cursor: pointer; }
+        .ending-item.unlocked:hover { background-color: #FFF0F2; border-color: #FFC1CC; }
+        .ending-item.achieved { border-color: #FF2442; background-color: #FFF0F2; transform: scale(1.02); box-shadow: 0 4px 15px rgba(255, 36, 66, 0.1); }
+        .ending-item-title { font-size: 16px; font-weight: bold; }
+        .ending-item.unlocked .ending-item-title { color: #FF2442; }
+        .ending-item.locked .ending-item-title { color: #aaa; }
+        .back-to-menu-btn-wrapper { text-align: center; margin-top: 30px; }
+
+        /* 结局浮窗 Modal 样式 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+        .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-title { font-size: 20px; font-weight: bold; margin-bottom: 15px; color: #FF2442; }
+        .modal-desc, .modal-clues { font-size: 15px; color: #333; line-height: 1.6; }
+        .modal-clues { margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0; font-size: 14px; color: #666; }
+        .modal-clues strong { font-weight: bold; color: #333; }
+        .modal-close-btn { display: block; width: 100%; text-align: center; margin-top: 25px; padding: 12px; background-color: #F0F2F5; color: #333; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+
+        /* 动画与提示 */
+        .feedback-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(0, 0, 0, 0.75); color: white; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 1000; opacity: 0; animation: fadeInOut 3s forwards; white-space: pre; }
+        @keyframes fadeInOut { 10% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+        .post, .comment, .ending-item, .main-menu { opacity: 0; animation: fadeIn 0.6s forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="game-container"></div>
+    </div>
+    <div id="modal-container"></div>
+
+    <script>
+        const UNLOCKED_ENDINGS_KEY = 'unlockedEndings_v7';
+
+        const storyData = {
+            "start_node": "node_1",
+            "endings": {
+                "ending_anniversary_surprise": { "title": "结局一：周年的惊喜", "description": "你选择了信任与沟通，最终发现一切只是一场为你精心准备的周年纪念日惊喜。你们的感情因此变得更加坚固。", "key_clues": ["优先考虑沟通与经营关系", "在关键时刻选择了相信对方"] },
+                "ending_harsh_reality": { "title": "结局二：残酷的现实", "description": "你敏锐的直觉和果断的调查最终揭开了不堪的真相。虽然过程痛苦，但你至少为自己赢得了尊严和解脱。", "key_clues": ["坚持调查并发现了决定性证据", "在证据面前选择了勇敢对质"] },
+                "ending_willful_bliss": { "title": "结局三：情愿的幸福", "description": "你选择忽略那些令人不安的蛛丝马迹，全身心地投入到维护关系中。生活重归平静，也许，不知道真相才是最幸福的。", "key_clues": ["选择忽略了明显的疑点", "将关系的稳定置于真相之上"] },
+                "ending_poison_of_suspicion": { "title": "结局四：猜疑的毒药", "description": "你的猜忌像毒药一样侵蚀了你们的关系。无论真相如何，无休止的争吵和试探已让一切无法挽回。", "key_clues": ["采取了极端且伤害感情的调查方式", "让不信任感彻底摧毁了关系"] },
+                "ending_ambiguous_alliance": { "title": "结局五：暧昧的盟约", "description": "调查发现，他确实在和一个女人秘密接触，但对方声称是帮他准备创业的伙伴。你选择相信这个解释，但未来充满了不确定性。", "key_clues": ["发现了指向复杂真相的线索", "选择相信了一个充满风险的解释"] }
+            },
+            "nodes": {
+                "node_1": { "post_author": "@今天也要开心呀", "post_title": "集美们，我好像闻到了不该闻的味道… 🤔", "post_text": "和老公结婚三年了，感情一直还不错。但最近一周，他下班回家身上总带着一种我非常陌生的花果香。我敢肯定我们家没人用这个味道的任何东西，也不是他自己的古龙水。是我鼻子出问题了吗？还是我真的想多了？心里堵得慌，又不知道该怎么开口问。姐妹们有没有遇到过类似的情况啊？", "tags": ["婚姻", "夫妻日常", "情感求助"], "choices": [ { "comment_author": "@福尔摩斯小姐", "comment_text": "味道描述得这么具体，肯定有问题！建议下次他回来，装作不经意地抱抱他，然后说：‘老公，你今天身上味道好好闻哦，换新香水啦？’ 看他是什么反应！", "next_node": "node_2a_confront", "effects": { "truth": 10, "trust": -5 } }, { "comment_author": "@人间清醒", "comment_text": "千万别打草惊蛇。找个机会翻翻他的车，特别是副驾驶，还有他的公文包。有时候物证比质问更管用。", "next_node": "node_2b_investigate", "effects": { "truth": 20, "trust": -15 } }, { "comment_author": "@快乐小狗", "comment_text": "哎呀，可能就是你想多啦。说不定是地铁上、电梯里人多蹭到的呢？别自己吓自己，先观察几天再说。", "next_node": "node_2c_ignore", "effects": { "truth": -5, "trust": 10 } }, { "comment_author": "@情感导师大姐", "comment_text": "亲爱的，有时候外部的信号是内部关系的映射。试试安排一个浪漫的晚餐，好好沟通一下，也许能找回一些甜蜜，疑虑就散了。", "next_node": "node_2d_romance", "effects": { "truth": 0, "trust": 15 } } ] },
+                "node_2a_confront": { "post_author": "@今天也要开心呀", "post_title": "【后续】我试探着问了，他的反应有点奇怪…", "post_text": "我按照姐妹的建议，笑着问他是不是换了新香水。他明显愣了一下，眼神有点闪躲，然后立刻说：‘哪有，可能是开会时离一个女同事近，蹭上的吧。’ 然后就赶紧转移话题问我晚饭吃了没。姐妹们，这个解释你们信吗？我心里更没底了。", "tags": ["后续更新", "求分析", "眼神闪躲"], "choices": [ { "comment_author": "@科技达人", "comment_text": "眼神闪躲就是心虚！趁他洗澡的时候，检查他手机的消费记录和打车软件的目的地，肯定有线索。", "next_node": "ending_harsh_reality", "effects": { "truth": 30, "trust": -20 } }, { "comment_author": "@和平主义者", "comment_text": "婚姻的基础是信任。既然他解释了，就先选择相信他一次吧。如果再有下次，再深究也不迟。逼得太紧可能会伤害感情。", "next_node": "ending_anniversary_surprise", "effects": { "truth": -10, "trust": 20 } }, { "comment_author": "@激进派", "comment_text": "这种解释太敷衍了！直接抢过他手机当面对质，如果他不愿意就是心里有鬼！", "next_node": "ending_poison_of_suspicion", "effects": { "truth": 25, "trust": -50 } } ] },
+                "node_2b_investigate": { "post_author": "@今天也要开心呀", "post_title": "【后续】我检查了他的车，心凉了半截！", "post_text": "趁他去洗澡，我冲下楼检查了他的车。车里那股香味更浓了！最关键的是，我在副驾驶的座位缝里，发现了一根不属于我的、染成金色的长发！我的心跳得好快，手都在抖。这算是证据吗？我该怎么办啊？", "tags": ["线索发现", "心碎时刻", "求下一步"], "choices": [ { "comment_author": "@证据收藏家", "comment_text": "拍照留存！然后去查他的信用卡账单，看看最近有没有酒店、餐厅或者买礼物的可疑消费。证据链要完整！", "next_node": "ending_harsh_reality", "effects": { "truth": 25, "trust": -10 } }, { "comment_author": "@摊牌吧姐妹", "comment_text": "证据都这样了还等什么？直接拿着头发去跟他对质，看他怎么解释！", "next_node": "node_3a_confront_hair", "effects": { "truth": 15, "trust": -5 } }, {"comment_author": "@冷静观察家", "comment_text": "先别动，把头发收好。未来几天，装作什么都不知道，仔细观察他有没有其他异常行为。一次性收集更多证据。", "next_node": "node_2c_ignore", "effects": {"truth": 10, "trust": 0}} ] },
+                "node_2c_ignore": { "post_author": "@今天也要开心呀", "post_title": "【后续】我试着让自己别多想…", "post_text": "听了姐妹的劝，我努力告诉自己是想多了。这两天我没再提香水的事，生活似乎又回到了正常的轨道。他似乎也察觉到我的情绪不高，回家都特别准时，还主动做了晚饭。也许真的是我太敏感了？", "tags": ["自我调节", "关系观察"], "choices": [ { "comment_author": "@和平主义者", "comment_text": "看吧，有时候男的就是神经大条，你一沉默他就知道错了。继续保持，多给他一些积极的反馈，把关系拉回来。", "next_node": "ending_anniversary_surprise", "effects": { "truth": -5, "trust": 15 } }, { "comment_author": "@人间清醒", "comment_text": "姐妹，这叫‘心虚表现’。你一有动静，他就开始弥补。香水味的事还没解决呢，别被一顿晚饭就糊弄过去了！", "next_node": "node_2a_confront", "effects": { "truth": 5, "trust": -5 } }, { "comment_author": "@快乐至上", "comment_text": "不管他是不是心虚，现在他对你好不就行了？想那么多干嘛，享受当下呗。有些事，不知道比知道要好。", "next_node": "ending_willful_bliss", "effects": { "truth": -15, "trust": 10 } } ] },
+                "node_2d_romance": { "post_author": "@今天也要开心呀", "post_title": "【后续】我们的烛光晚餐很成功，但…", "post_text": "我准备了烛光晚餐，气氛很好，我们聊了很多。他承认最近工作忙，可能忽略了我。关于香水，他还是坚持说是在电梯里蹭到的。虽然我们的关系缓和了很多，但我心里的那根刺还是没有完全拔掉。", "tags": ["增进感情", "疑虑未消"], "choices": [ { "comment_author": "@浪漫派", "comment_text": "这就是好的开始！感情是需要经营的，继续保持这种浪漫的沟通，信任会慢慢回来的。", "next_node": "ending_anniversary_surprise", "effects": { "truth": -10, "trust": 25 } }, { "comment_author": "@双管齐下", "comment_text": "一边稳住他，一边继续调查。温柔是迷惑他的武器，真相需要自己去寻找。", "next_node": "node_2b_investigate", "effects": { "truth": 15, "trust": 0 } }, {"comment_author": "@沟通主义者", "comment_text": "第二天找个机会，温和但认真地告诉他，这件事还在困扰你。看看他是否愿意提供更多细节来安抚你。", "next_node": "node_2a_confront", "effects": {"truth": 5, "trust": -5}}] },
+                "node_3a_confront_hair": { "post_author": "@今天也要开心呀", "post_title": "【后续】关于那根头发，他给了一个我没想到的解释…", "post_text": "我拿着头发和他对质，他愣了一下，然后苦笑着说，这是他姐姐的。他姐姐上周回国，他去机场接的她，姐姐最近刚染了金发。这个解释听起来天衣无缝，但我总觉得哪里不对。这么巧合吗？", "tags": ["对质", "新的解释", "半信半疑"], "choices": [ {"comment_author": "@细节控", "comment_text": "问他姐姐现在在哪，或者直接打电话给你姐姐确认一下。如果他撒谎，肯定会漏出马脚。", "next_node": "ending_harsh_reality", "effects": {"truth": 20, "trust": -15}}, {"comment_author": "@信任派", "comment_text": "听起来是个合理的解释。既然是一家人，就先相信他吧。别因为一根头发就毁了你们的信任。", "next_node": "ending_anniversary_surprise", "effects": {"truth": -10, "trust": 20}}, {"comment_author": "@创业观察家", "comment_text": "等等，我听说他最近好像在捣鼓什么新项目？会不会是和合伙人有关？这个合伙人是女的吗？", "next_node": "node_4a_new_clue", "effects": {"truth": 10, "trust": 5}} ] },
+                "node_4a_new_clue": { "post_author": "@今天也要开心呀", "post_title": "【惊天逆转？】他说香水味和秘密接触，都是因为在创业！", "post_text": "我顺着创业这条线问下去，他终于坦白了！他说最近在和一个女性产品经理秘密筹备一个项目，想给我一个惊喜。香水味是测试样品时不小心沾上的，金发是那个女产品经理的。他说现在还不能告诉我细节。姐妹们，这个理由你们觉得可信吗？", "tags": ["创业故事", "新的谜团", "最终抉择"], "choices": [ {"comment_author": "@商业女强人", "comment_text": "创业初期确实需要保密，这个解释有一定合理性。我建议你选择相信，并支持他的事业。", "next_node": "ending_ambiguous_alliance", "effects": {"truth": -5, "trust": 25}}, {"comment_author": "@反矫达人", "comment_text": "用创业当借口也太老套了吧！哪有创业搞得这么神神秘秘还沾一身香水的？这绝对是谎言！", "next_node": "ending_harsh_reality", "effects": {"truth": 20, "trust": -20}}, {"comment_author": "@和事佬", "comment_text": "不管是不是真的，因为这件事你们已经吵得够多了。再纠缠下去只会两败俱伤。到此为止吧。", "next_node": "ending_poison_of_suspicion", "effects": {"truth": -10, "trust": -30}} ] },
+                "ending_anniversary_surprise": { "is_ending": true }, "ending_harsh_reality": { "is_ending": true }, "ending_willful_bliss": { "is_ending": true }, "ending_poison_of_suspicion": { "is_ending": true }, "ending_ambiguous_alliance": { "is_ending": true }
+            }
+        };
+
+        let currentNodeId;
+        let truth, trust;
+
+        // --- LocalStorage 辅助函数 ---
+        function getUnlockedEndings() { const data = localStorage.getItem(UNLOCKED_ENDINGS_KEY); return data ? JSON.parse(data) : []; }
+        function saveUnlockedEnding(endingId) { const unlocked = getUnlockedEndings(); if (!unlocked.includes(endingId)) { unlocked.push(endingId); localStorage.setItem(UNLOCKED_ENDINGS_KEY, JSON.stringify(unlocked)); } }
+
+        // --- 核心游戏流程 ---
+        function startGame() { currentNodeId = storyData.start_node; truth = 5; trust = 70; renderNode(currentNodeId); }
+        function showFeedback(choice) { if (!choice.effects) return; const truthChange = choice.effects.truth || 0; const trustChange = choice.effects.trust || 0; let parts = []; if (truthChange > 0) parts.push(`真相 +${truthChange}`); else if (truthChange < 0) parts.push(`真相 ${truthChange}`); if (trustChange > 0) parts.push(`信任 +${trustChange}`); else if (trustChange < 0) parts.push(`信任 ${trustChange}`); if (parts.length === 0) return; const feedbackText = `[ ${parts.join(', ')} ]`; const toast = document.createElement('div'); toast.className = 'feedback-toast'; toast.textContent = feedbackText; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+
+        // --- 渲染函数 ---
+        function renderMainMenu() { const container = document.getElementById('game-container'); container.innerHTML = ''; const menuDiv = document.createElement('div'); menuDiv.className = 'main-menu'; const title = document.createElement('h1'); title.className = 'menu-title'; title.textContent = '热搜预定'; menuDiv.appendChild(title); const subtitle = document.createElement('p'); subtitle.className = 'menu-subtitle'; subtitle.textContent = '你闻到了不该闻到的味道…\n你的选择，就是你的“真相”。'; menuDiv.appendChild(subtitle); const startBtn = document.createElement('button'); startBtn.className = 'menu-button menu-button-primary'; startBtn.textContent = '开始新故事'; startBtn.onclick = startGame; menuDiv.appendChild(startBtn); const collectionBtn = document.createElement('button'); collectionBtn.className = 'menu-button menu-button-secondary'; collectionBtn.textContent = '查看结局图鉴'; collectionBtn.onclick = () => renderCollectionScreen(null); menuDiv.appendChild(collectionBtn); container.appendChild(menuDiv); }
+
+        function renderCollectionScreen(achievedEndingId) { if (achievedEndingId) { saveUnlockedEnding(achievedEndingId); } const unlocked = getUnlockedEndings(); const container = document.getElementById('game-container'); container.innerHTML = ''; const wrapper = document.createElement('div'); wrapper.className = 'collection-wrapper'; const title = document.createElement('h2'); title.className = 'collection-title'; title.textContent = '结局图鉴'; wrapper.appendChild(title); const subtitle = document.createElement('p'); subtitle.className = 'collection-subtitle'; if (achievedEndingId) { subtitle.textContent = `恭喜你达成了新的结局！ (${unlocked.length}/${Object.keys(storyData.endings).length} 解锁)`; } else { subtitle.textContent = `你所选择的，就是你的“真相”。 (${unlocked.length}/${Object.keys(storyData.endings).length} 解锁)`; } wrapper.appendChild(subtitle); Object.keys(storyData.endings).forEach((endingId, index) => { const item = document.createElement('div'); item.className = 'ending-item'; item.style.animationDelay = `${index * 0.1}s`; const itemTitle = document.createElement('div'); itemTitle.className = 'ending-item-title'; if (unlocked.includes(endingId)) { item.classList.add('unlocked'); if (endingId === achievedEndingId) { item.classList.add('achieved'); } itemTitle.textContent = storyData.endings[endingId].title; item.onclick = () => showEndingModal(endingId); } else { item.classList.add('locked'); itemTitle.textContent = '未知的“真相”'; } item.appendChild(itemTitle); wrapper.appendChild(item); }); const btnWrapper = document.createElement('div'); btnWrapper.className = 'back-to-menu-btn-wrapper'; const backToMenuBtn = document.createElement('button'); backToMenuBtn.className = 'menu-button menu-button-primary'; backToMenuBtn.textContent = '返回主菜单'; backToMenuBtn.onclick = renderMainMenu; btnWrapper.appendChild(backToMenuBtn); wrapper.appendChild(btnWrapper); container.appendChild(wrapper); }
+
+        function showEndingModal(endingId) { const endingData = storyData.endings[endingId]; const modalContainer = document.getElementById('modal-container'); modalContainer.innerHTML = ''; const overlay = document.createElement('div'); overlay.className = 'modal-overlay'; const content = document.createElement('div'); content.className = 'modal-content'; const title = document.createElement('h3'); title.className = 'modal-title'; title.textContent = endingData.title; content.appendChild(title); const desc = document.createElement('p'); desc.className = 'modal-desc'; desc.textContent = endingData.description; content.appendChild(desc); const clues = document.createElement('div'); clues.className = 'modal-clues'; clues.innerHTML = `<strong>你的选择:</strong> ${endingData.key_clues.join('；')}`; content.appendChild(clues); const closeBtn = document.createElement('button'); closeBtn.className = 'modal-close-btn'; closeBtn.textContent = '关闭'; content.appendChild(closeBtn); overlay.appendChild(content); modalContainer.appendChild(overlay); setTimeout(() => overlay.classList.add('visible'), 10); const closeModal = () => { overlay.classList.remove('visible'); setTimeout(() => modalContainer.innerHTML = '', 300); }; overlay.onclick = (e) => { if (e.target === overlay) closeModal(); }; closeBtn.onclick = closeModal; }
+
+        function renderNode(nodeId) {
+            window.scrollTo(0, 0); 
+            const node = storyData.nodes[nodeId];
+            if (!node) { console.error("错误: 找不到节点ID:", nodeId); return; } 
+            
+            if (node.is_ending) {
+                renderCollectionScreen(nodeId);
+                return;
+            }
+
+            const container = document.getElementById('game-container');
+            container.innerHTML = '';
+            
+            const postDiv = document.createElement('div'); 
+            postDiv.className = 'post'; 
+            
+            const userInfo = document.createElement('div'); 
+            userInfo.className = 'user-info'; 
+            
+            const avatar = document.createElement('div'); 
+            avatar.className = 'avatar-placeholder'; 
+            avatar.textContent = (node.post_author.charAt(1) || '主'); 
+            
+            const username = document.createElement('span'); 
+            username.className = 'username'; 
+            username.textContent = node.post_author; 
+            
+            userInfo.appendChild(avatar); 
+            userInfo.appendChild(username); 
+            postDiv.appendChild(userInfo); 
+            
+            if (node.post_title) { 
+                const postTitle = document.createElement('h2'); 
+                postTitle.className = 'post-title'; 
+                postTitle.textContent = node.post_title; 
+                postDiv.appendChild(postTitle); 
+            } 
+            
+            if (node.post_text) { 
+                const postText = document.createElement('p'); 
+                postText.className = 'post-text'; 
+                postText.innerHTML = node.post_text.replace(/\n/g, '<br>'); 
+                postDiv.appendChild(postText); 
+            } 
+            
+            if (node.tags && node.tags.length > 0) { 
+                const tagsDiv = document.createElement('div'); 
+                tagsDiv.className = 'tags'; 
+                node.tags.forEach(tagText => { 
+                    const tagSpan = document.createElement('span'); 
+                    tagSpan.className = 'tag'; 
+                    tagSpan.textContent = `# ${tagText}`; 
+                    tagsDiv.appendChild(tagSpan); 
+                }); 
+                postDiv.appendChild(tagsDiv); 
+            } 
+            
+            container.appendChild(postDiv); 
+            
+            if (node.choices) { 
+                const divider = document.createElement('div'); 
+                divider.className = 'divider'; 
+                container.appendChild(divider); 
+                
+                const commentHeader = document.createElement('div'); 
+                commentHeader.className = 'comment-header'; 
+                commentHeader.textContent = `热门评论 (${node.choices.length})`; 
+                container.appendChild(commentHeader); 
+                
+                node.choices.forEach(choice => { 
+                    const commentDiv = document.createElement('div'); 
+                    commentDiv.className = 'comment'; 
+                    commentDiv.onclick = () => { 
+                        if (choice.effects) { 
+                            truth += choice.effects.truth || 0; 
+                            trust += choice.effects.trust || 0; 
+                        } 
+                        showFeedback(choice); 
+                        currentNodeId = choice.next_node; 
+                        renderNode(currentNodeId); 
+                    }; 
+                    
+                    const commentContent = document.createElement('div'); 
+                    commentContent.className = 'comment-content'; 
+                    
+                    const commentUser = document.createElement('div'); 
+                    commentUser.className = 'comment-user'; 
+                    
+                    const commentAvatar = document.createElement('div'); 
+                    commentAvatar.className = 'comment-avatar-placeholder'; 
+                    commentAvatar.textContent = choice.comment_author.charAt(1) || '友'; 
+                    
+                    const commentUsername = document.createElement('span'); 
+                    commentUsername.className = 'comment-username'; 
+                    commentUsername.textContent = choice.comment_author; 
+                    
+                    commentUser.appendChild(commentAvatar); 
+                    commentUser.appendChild(commentUsername); 
+                    commentContent.appendChild(commentUser); 
+                    
+                    const commentText = document.createElement('p'); 
+                    commentText.className = 'comment-text'; 
+                    commentText.textContent = choice.comment_text; 
+                    commentContent.appendChild(commentText); 
+                    
+                    commentDiv.appendChild(commentContent); 
+                    
+                    const likeIcon = document.createElement('span'); 
+                    likeIcon.className = 'like-icon'; 
+                    likeIcon.textContent = '❤️'; 
+                    commentDiv.appendChild(likeIcon); 
+                    
+                    container.appendChild(commentDiv); 
+                }); 
+            }
+        }
+        
+        // 游戏启动时，首先渲染主菜单
+        renderMainMenu();
+    </script>
+</body>
+</html>
